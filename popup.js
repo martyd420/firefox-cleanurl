@@ -1,3 +1,12 @@
+function setCounter(el, before, count, after) {
+  el.textContent = "";
+  el.appendChild(document.createTextNode(before));
+  const span = document.createElement("span");
+  span.textContent = count;
+  el.appendChild(span);
+  el.appendChild(document.createTextNode(after));
+}
+
 const toggle          = document.getElementById("toggle");
 const status          = document.getElementById("status");
 const statusCleaned   = document.getElementById("status-cleaned");
@@ -22,19 +31,19 @@ async function render() {
   const params = data.cleanurl_params || DEFAULT_PARAMS;
   const active  = params.filter(p => p.mode !== "off").length;
 
-  status.innerHTML = en
-    ? `Tracking <span>${active}</span> parameters`
-    : `Extension is disabled`;
+  if (en) {
+    setCounter(status, "Tracking ", active, " parameters");
+  } else {
+    status.textContent = "Extension is disabled";
+  }
 
   const n = stats.totalCleaned;
-  statusCleaned.innerHTML = n > 0
-    ? `Cleaned <span>${n}</span> parameters since start`
-    : "";
+  if (n > 0) setCounter(statusCleaned, "Cleaned ", n, " parameters since start");
+  else statusCleaned.textContent = "";
 
   const lt = stats.lifetimeCleaned;
-  statusLifetime.innerHTML = lt > 0
-    ? `Total <span>${lt}</span> parameters since install`
-    : "";
+  if (lt > 0) setCounter(statusLifetime, "Total ", lt, " parameters since install");
+  else statusLifetime.textContent = "";
 }
 
 toggle.addEventListener("change", async () => {
