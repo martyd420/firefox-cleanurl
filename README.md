@@ -17,8 +17,6 @@ A Firefox extension that removes or replaces tracking parameters from URLs befor
 2. Open Firefox and go to `about:debugging#/runtime/this-firefox`.
 3. Click **Load Temporary Add-on** and select `manifest.json`.
 
-For a permanent install, package the extension and submit it to [addons.mozilla.org](https://addons.mozilla.org).
-
 ## Usage
 
 Click the toolbar icon to enable/disable the extension or open the settings page.
