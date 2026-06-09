@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>CleanURL</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, sans-serif;
+      font-size: 13px;
+      width: 220px;
+      background: #1e1e1e;
+      color: #e0e0e0;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      border-bottom: 1px solid #333;
+    }
+    .header h1 {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: .02em;
+    }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+    }
+    .label { font-size: 13px; color: #bbb; }
+    /* Toggle switch */
+    .switch { position: relative; display: inline-block; width: 38px; height: 22px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; inset: 0;
+      background: #444;
+      border-radius: 3px;
+      transition: background .2s;
+      cursor: pointer;
+    }
+    .slider::before {
+      content: "";
+      position: absolute;
+      width: 16px; height: 16px;
+      left: 3px; top: 3px;
+      background: #e0e0e0;
+      border-radius: 2px;
+      transition: transform .2s;
+    }
+    input:checked + .slider { background: #4a9c59; }
+    input:checked + .slider::before { transform: translateX(16px); }
+
+    .options-link {
+      display: block;
+      padding: 10px 16px;
+      border-top: 1px solid #333;
+      color: #888;
+      text-decoration: none;
+      font-size: 12px;
+    }
+    .options-link:hover { color: #ccc; }
+    .status {
+      padding: 0 16px 14px;
+      font-size: 11px;
+      color: #666;
+    }
+    .status span { color: #4a9c59; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>CleanURL</h1>
+  </div>
+  <div class="toggle-row">
+    <span class="label">Active</span>
+    <label class="switch">
+      <input type="checkbox" id="toggle">
+      <span class="slider"></span>
+    </label>
+  </div>
+  <div class="status" id="status"></div>
+  <div class="status" id="status-cleaned" style="padding-top:0"></div>
+  <div class="status" id="status-lifetime" style="padding-top:0"></div>
+  <a class="options-link" id="options-link" href="#">Parameter settings →</a>
+  <script src="params.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

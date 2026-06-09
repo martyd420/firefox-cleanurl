@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+  <rect width="96" height="96" rx="3" fill="#1e1e1e"/>
+  <!-- chain link left -->
+  <path d="M28 52 Q20 52 20 44 Q20 36 28 36 L40 36" stroke="#4a9c59" stroke-width="6" stroke-linecap="round" fill="none"/>
+  <!-- chain link right (broken/clean) -->
+  <path d="M56 36 L68 36 Q76 36 76 44 Q76 52 68 52 L56 52" stroke="#888" stroke-width="6" stroke-linecap="round" fill="none" stroke-dasharray="4 3"/>
+  <!-- middle bar -->
+  <line x1="40" y1="44" x2="52" y2="44" stroke="#4a9c59" stroke-width="6" stroke-linecap="round"/>
+  <!-- strike through right part (tracking removed) -->
+  <line x1="56" y1="36" x2="66" y2="58" stroke="#c05050" stroke-width="3" stroke-linecap="round"/>
+</svg>

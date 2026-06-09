@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>CleanURL – Settings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, sans-serif;
+      font-size: 13px;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      padding: 32px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+    h2 { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+    .subtitle { color: #777; font-size: 12px; margin-bottom: 28px; }
+    .section { margin-top: 40px; }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 6px 14px;
+      border: 1px solid #444;
+      border-radius: 3px;
+      background: #2a2a2a;
+      color: #ccc;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .btn:hover { background: #333; color: #fff; }
+    .btn.primary { background: #2d5c38; border-color: #3a7049; color: #e0e0e0; }
+    .btn.primary:hover { background: #3a7049; }
+    .btn.danger { border-color: #6b3030; color: #e07070; }
+    .btn.danger:hover { background: #3a2020; }
+
+    .add-row {
+      display: flex; gap: 8px; align-items: center; margin-bottom: 20px;
+    }
+    .add-row input {
+      flex: 1;
+      padding: 6px 10px;
+      background: #252525;
+      border: 1px solid #444;
+      border-radius: 3px;
+      color: #e0e0e0;
+      font-size: 12px;
+      font-family: monospace;
+    }
+    .add-row input::placeholder { color: #555; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    thead th {
+      text-align: left;
+      font-size: 11px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      padding: 0 10px 8px;
+      border-bottom: 1px solid #2e2e2e;
+    }
+    tbody tr { border-bottom: 1px solid #242424; }
+    tbody tr:hover { background: #1f1f1f; }
+    td { padding: 8px 10px; vertical-align: middle; }
+    td.name { font-family: monospace; font-size: 12px; color: #c5c5c5; }
+
+    select {
+      background: #252525;
+      border: 1px solid #3a3a3a;
+      border-radius: 3px;
+      color: #ccc;
+      font-size: 12px;
+      padding: 4px 6px;
+      cursor: pointer;
+    }
+    .value-cell input {
+      background: #252525;
+      border: 1px solid #3a3a3a;
+      border-radius: 3px;
+      color: #ccc;
+      font-size: 12px;
+      padding: 4px 8px;
+      font-family: monospace;
+      width: 180px;
+    }
+    .value-cell input:disabled {
+      opacity: .3;
+      cursor: default;
+    }
+    .del-btn {
+      background: none;
+      border: none;
+      color: #555;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+    .del-btn:hover { color: #e07070; background: #2e1a1a; }
+
+    /* Domain allowlist chips */
+    .domain-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .domain-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: #252525;
+      border: 1px solid #3a3a3a;
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #c5c5c5;
+    }
+    .domain-chip .del-btn { font-size: 12px; padding: 0 2px; }
+
+    .saved-msg {
+      font-size: 12px;
+      color: #4a9c59;
+      opacity: 0;
+      transition: opacity .3s;
+      margin-left: auto;
+    }
+    .saved-msg.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <h1>CleanURL</h1>
+  <p class="subtitle">Configure what should happen to each tracking parameter in the URL.</p>
+
+  <div class="toolbar">
+    <button class="btn" id="select-all">Select all</button>
+    <button class="btn" id="set-remove">Set selected → Remove</button>
+    <button class="btn" id="set-random">Set selected → Random</button>
+    <button class="btn danger" id="del-selected">Delete selected</button>
+    <button class="btn" id="reset-defaults">Reset defaults</button>
+    <button class="btn primary" id="save-btn">Save</button>
+    <span class="saved-msg" id="saved-msg">Saved</span>
+  </div>
+
+  <div class="add-row">
+    <input type="text" id="new-param" placeholder="Parameter name or pattern (e.g. ref, utm_*)">
+    <button class="btn primary" id="add-btn">Add</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:30px"><input type="checkbox" id="check-all"></th>
+        <th>Parameter</th>
+        <th>Action</th>
+        <th>Replacement value</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="params-body"></tbody>
+  </table>
+
+  <div class="section">
+    <h2>Domain exceptions</h2>
+    <p class="subtitle">Cleaning will not be applied on these domains (also applies to subdomains).</p>
+    <div class="add-row">
+      <input type="text" id="new-domain" placeholder="example.com">
+      <button class="btn primary" id="add-domain-btn">Add</button>
+    </div>
+    <div class="domain-list" id="domain-list"></div>
+  </div>
+
+  <script src="params.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>
