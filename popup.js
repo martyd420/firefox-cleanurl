@@ -21,14 +21,14 @@ optionsLink.addEventListener("click", e => {
 
 async function render() {
   const [data, stats] = await Promise.all([
-    browser.storage.local.get(["cleanurl_enabled", "cleanurl_params"]),
+    browser.storage.local.get([STORAGE_KEY_ENABLED, STORAGE_KEY_PARAMS]),
     browser.runtime.sendMessage({ type: "getStats" }).catch(() => ({ totalCleaned: 0 })),
   ]);
 
-  const en = data.cleanurl_enabled !== false;
+  const en = data[STORAGE_KEY_ENABLED] !== false;
   toggle.checked = en;
 
-  const params = data.cleanurl_params || DEFAULT_PARAMS;
+  const params = data[STORAGE_KEY_PARAMS] || DEFAULT_PARAMS;
   const active  = params.length;
 
   if (en) {
@@ -47,7 +47,7 @@ async function render() {
 }
 
 toggle.addEventListener("change", async () => {
-  await browser.storage.local.set({ cleanurl_enabled: toggle.checked });
+  await browser.storage.local.set({ [STORAGE_KEY_ENABLED]: toggle.checked });
   await render();
 });
 

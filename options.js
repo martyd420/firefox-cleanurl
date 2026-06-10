@@ -18,8 +18,8 @@ const domainError = document.getElementById("domain-error");
 
 async function save() {
   await browser.storage.local.set({
-    cleanurl_params:    params,
-    cleanurl_allowlist: allowlist,
+    [STORAGE_KEY_PARAMS]:    params,
+    [STORAGE_KEY_ALLOWLIST]: allowlist,
   });
   savedMsg.classList.add("show");
   setTimeout(() => savedMsg.classList.remove("show"), 1500);
@@ -225,10 +225,10 @@ function clearError(msgEl) {
 
 async function init() {
   const data = await browser.storage.local.get([
-    "cleanurl_params", "cleanurl_allowlist"
+    STORAGE_KEY_PARAMS, STORAGE_KEY_ALLOWLIST
   ]);
-  params    = (data.cleanurl_params    || DEFAULT_PARAMS).map(p => ({ ...p }));
-  allowlist = (data.cleanurl_allowlist || []).slice();
+  params    = (data[STORAGE_KEY_PARAMS]    || DEFAULT_PARAMS).map(p => ({ ...p }));
+  allowlist = (data[STORAGE_KEY_ALLOWLIST] || []).slice();
   renderParams();
   renderDomains();
 }
