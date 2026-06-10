@@ -1,72 +1,72 @@
-# CleanURL – plán vylepšení
+# CleanURL – improvement plan
 
-Stav: návrh k diskusi. Položky jsou seřazené podle priority; každá fáze je samostatně dodatelná.
+Status: proposal for discussion. Items are ordered by priority; each phase can be shipped on its own.
 
-## Vůdčí princip: maximální bezpečnost a soukromí
+## Guiding principle: maximum security and privacy
 
-CleanURL cílí na uživatele citlivé na soukromí a bezpečnost. Všechna rozhodnutí
-proto drží **minimalizaci dat** a **nejnižší možná oprávnění**:
+CleanURL targets privacy- and security-conscious users. Every decision therefore
+favors **data minimization** and the **least privilege** possible:
 
-- Žádný sběr dat, žádná telemetrie, žádné síťové volání — vše běží lokálně.
-- Žádáme jen 4 nezbytná oprávnění (`webRequest`, `webRequestBlocking`,
-  `storage`, `<all_urls>`); každé je nutné pro jádro funkce.
-- **Nikdy nebudeme požadovat riziková oprávnění, která pro čištění URL nejsou
-  nezbytná** — zejména `clipboardWrite`/`clipboardRead`, `cookies`, `history`,
-  `bookmarks`, `downloads`, `nativeMessaging`. Pokud nějakou funkci nelze
-  postavit bez takového oprávnění, funkci raději zahodíme nebo přepracujeme.
+- No data collection, no telemetry, no network calls — everything runs locally.
+- We request only the 4 essential permissions (`webRequest`, `webRequestBlocking`,
+  `storage`, `<all_urls>`); each is required for the core function.
+- **We will never request high-risk permissions that aren't essential for cleaning
+  URLs** — in particular `clipboardWrite`/`clipboardRead`, `cookies`, `history`,
+  `bookmarks`, `downloads`, `nativeMessaging`. If a feature can't be built without
+  such a permission, we drop or redesign the feature instead.
 
-## 1. Opravy chyb (rychlé, udělat hned)
+## 1. Bug fixes (quick, do now)
 
-- [x] **Mrtvý kód `mode !== "off"` v popupu** (`popup.js:32`) — režim `off` nikde neexistuje, počítadlo „Tracking N parameters" tedy vždy počítá všechny parametry. Buď podmínku odstranit, nebo (lépe) režim `off` skutečně doimplementovat — viz bod 3.1.
-- [x] **Špatný komentář v `params.js`** — `mc_eid` je Mailchimp (e-mail ID), ne Facebook/Meta. Přesunout k `mc_cid`.
-- [x] **Duplicitní parametry v URL** (`background.js:67–91`) — `searchParams.delete(key)` smaže všechny výskyty najednou, ale snapshot iteruje každý výskyt zvlášť, takže `count` se navýší za už smazané položky. Statistiky pak nadhodnocují. Řešení: počítat skutečně odstraněné výskyty (např. přes `Set` zpracovaných klíčů).
-- [x] **Ztráta lifetime počítadla při zavření prohlížeče** — debounce 2 s (`background.js:129–133`) znamená, že poslední zápis se může ztratit. Doplnit flush ve `window.onbeforeunload` / `browser.runtime.onSuspend` (na persistentní stránce stačí beforeunload).
+- [x] **Dead `mode !== "off"` code in the popup** (`popup.js:32`) — no `off` mode exists anywhere, so the "Tracking N parameters" counter always counts every parameter. Either remove the condition, or (better) actually implement an `off` mode — see item 3.1.
+- [x] **Wrong comment in `params.js`** — `mc_eid` is Mailchimp (e-mail ID), not Facebook/Meta. Move it next to `mc_cid`.
+- [x] **Duplicate parameters in a URL** (`background.js:67–91`) — `searchParams.delete(key)` removes all occurrences at once, but the snapshot iterates each occurrence separately, so `count` is incremented for already-deleted entries. Statistics then overcount. Fix: count actually-removed occurrences (e.g. via a `Set` of processed keys).
+- [x] **Lifetime counter lost on browser close** — the 2s debounce (`background.js:129–133`) means the last write can be lost. Add a flush in `window.onbeforeunload` / `browser.runtime.onSuspend` (on a persistent page, beforeunload is enough).
 
-## 2. Robustnost čištění
+## 2. Cleaning robustness
 
-- [x] **Parametry ve fragmentu URL** — trackery se objevují i za `#` (`example.com/#utm_source=x`, typicky SPA routery). Přidat volitelné čištění `url.hash`, pokud má tvar query stringu.
-- [x] **Vedlejší efekty re-serializace URL** — `URLSearchParams.toString()` mění encoding (`+`/`%20`, pořadí escapování) i u parametrů, kterých se čištění netýká. Minimalizovat: pokud `count === 0`, nic nevracet (už je), a zvážit ruční sestavení query, aby se nedotčené parametry nepřepisovaly. → Cleaner přepsán na práci s raw segmenty, nedotčené parametry se nepřepisují.
-- [x] **Vícenásobné hvězdičky ve vzoru** — `matchesPattern` umí jen prefix/sufix/contains. Buď podporu rozšířit (převod na RegExp s escapováním), nebo v options validovat a vzory typu `a*b*c` odmítnout s hláškou. → Validace v options (`isValidParamName`).
-- [x] **Validace nového parametru v options** (`options.js:142`) — dnes projde cokoli včetně mezer, `=`, `&`. Přidat jednoduchou validaci (`/^[\w.*~-]+$/`) a chybovou hlášku.
-- [x] **Allowlist: validace domény** — dnes lze přidat libovolný řetězec. Validovat tvar domény, normalizovat IDN (punycode) přes `new URL("http://" + raw).hostname`.
+- [x] **Parameters in the URL fragment** — trackers also appear after `#` (`example.com/#utm_source=x`, typically SPA routers). Add optional cleaning of `url.hash` when it has the shape of a query string.
+- [x] **Side effects of URL re-serialization** — `URLSearchParams.toString()` changes encoding (`+`/`%20`, escaping order) even for parameters that aren't being cleaned. Minimize: if `count === 0` return nothing (already done), and consider building the query manually so untouched parameters aren't rewritten. → Cleaner rewritten to operate on raw segments; untouched parameters are not rewritten.
+- [x] **Multiple asterisks in a pattern** — `matchesPattern` only supports prefix/suffix/contains. Either extend support (convert to a RegExp with escaping), or validate in options and reject patterns like `a*b*c` with an error message. → Validated in options (`isValidParamName`).
+- [x] **Validate a new parameter in options** (`options.js:142`) — today anything passes, including spaces, `=`, `&`. Add simple validation (`/^[\w.*~-]+$/`) and an error message.
+- [x] **Allowlist: domain validation** — today any string can be added. Validate the domain shape, normalize IDN (punycode) via `new URL("http://" + raw).hostname`.
 
-## 3. Funkční vylepšení
+## 3. Functional improvements
 
-> **Odloženo až po schválení na AMO.** Listing čeká na review
-> (https://addons.mozilla.org/en-US/firefox/addon/cleanurl/). Body 3.3/3.4
-> přidávají nové permissions (`clipboardWrite`, `activeTab`, `menus`), což může
-> review prodloužit nebo restartovat. Realizovat až po schválení.
+> **Deferred until AMO approval.** The listing is awaiting review
+> (https://addons.mozilla.org/en-US/firefox/addon/cleanurl/). Items 3.3/3.4 add
+> new permissions (`clipboardWrite`, `activeTab`, `menus`), which could extend or
+> restart the review. Implement only after approval.
 
-- [ ] **3.1 Per-parametr vypnutí (režim `off`)** — místo mazání řádku umožnit parametr dočasně vypnout. Doplnit do `cleanUrl` (přeskočit), do selectu v options a opravit počítadlo v popupu (návaznost na bod 1).
-- [ ] **3.2 Export / import nastavení** — JSON soubor s parametry + allowlistem. Dvě tlačítka v options, validace při importu.
-- [ ] **3.3 „Vyčistit aktuální URL" v popupu** — tlačítko, které vezme URL aktivního tabu, vyčistí ji a zkopíruje do schránky (sdílení odkazů bez trackingu i z webů v allowlistu). ~~Vyžaduje permission `activeTab` + `clipboardWrite`.~~ → **`clipboardWrite` nepožadujeme (viz vůdčí princip).** Realizovat jen pokud kopírování půjde přes uživatelské gesto bez permission (kliknutí na tlačítko → `navigator.clipboard.writeText` / `execCommand`); jinak funkci zahodit nebo nahradit jen zobrazením vyčištěné URL k ručnímu zkopírování.
-- [ ] **3.4 Kontextové menu „Kopírovat čistý odkaz"** — pravý klik na odkaz → vyčištěná URL do schránky. Permission `menus`. → Stejná podmínka jako 3.3 — bez `clipboardWrite`; pokud to bez něj nejde spolehlivě, zahodit.
-- [ ] **3.5 Per-tab badge** — dnes badge ukazuje globální session počítadlo. Užitečnější je počet vyčištěných parametrů pro aktuální tab (`setBadgeText({ tabId })`), globální čísla nechat v popupu.
-- [ ] **3.6 Rozšíření výchozího seznamu** — kandidáti: `mkt_tok` (Marketo), `vero_id`, `oly_enc_id`/`oly_anon_id` (Omeda), `s_cid` (Adobe), `dclid` (DoubleClick), `srsltid` (Google Merchant), `li_fat_id` (LinkedIn), `sccid` (Snapchat), `rtid`. Pozor na parametry, které rozbíjejí funkčnost (`ref` u některých webů) — ty nepřidávat globálně.
-- [ ] **3.7 Log posledních vyčištění** — malý kruhový buffer (např. 50 záznamů: čas, doména, odstraněné parametry) zobrazený v options. Pomáhá ladit falešné pozitivy. Držet jen v paměti (žádný zápis na disk = žádný nový sběr dat).
+- [ ] **3.1 Per-parameter disable (`off` mode)** — instead of deleting a row, allow a parameter to be temporarily disabled. Add to `cleanUrl` (skip), to the options select, and fix the popup counter (follows from item 1).
+- [ ] **3.2 Export / import settings** — JSON file with parameters + allowlist. Two buttons in options, validation on import.
+- [ ] **3.3 "Clean current URL" in the popup** — a button that takes the active tab's URL, cleans it, and copies it to the clipboard (sharing tracking-free links even from allowlisted sites). ~~Requires `activeTab` + `clipboardWrite`.~~ → **We do not request `clipboardWrite` (see guiding principle).** Implement only if copying can work via a user gesture without the permission (button click → `navigator.clipboard.writeText` / `execCommand`); otherwise drop the feature or replace it with just displaying the cleaned URL for manual copying.
+- [ ] **3.4 Context menu "Copy clean link"** — right-click a link → cleaned URL to the clipboard. `menus` permission. → Same condition as 3.3 — no `clipboardWrite`; if it can't be done reliably without it, drop it.
+- [ ] **3.5 Per-tab badge** — today the badge shows the global session counter. More useful is the number of parameters cleaned for the current tab (`setBadgeText({ tabId })`), keeping the global numbers in the popup.
+- [ ] **3.6 Extend the default list** — candidates: `mkt_tok` (Marketo), `vero_id`, `oly_enc_id`/`oly_anon_id` (Omeda), `s_cid` (Adobe), `dclid` (DoubleClick), `srsltid` (Google Merchant), `li_fat_id` (LinkedIn), `sccid` (Snapchat), `rtid`. Beware of parameters that break functionality (`ref` on some sites) — don't add those globally.
+- [ ] **3.7 Recent-cleanings log** — a small ring buffer (e.g. 50 entries: time, domain, removed parameters) shown in options. Helps debug false positives. Keep it in memory only (no disk writes = no new data collection).
 
-## 4. Kvalita kódu a tooling
+## 4. Code quality and tooling
 
-- [x] **Unit testy čisté logiky** — `cleanUrl`, `matchesPattern`, `buildParamMap`, `isDomainAllowed` jsou čisté funkce. Vyčlenit je do sdíleného modulu a testovat přes `node:test` (bez závislostí). Testy: duplicitní parametry, wildcardy, smyčky replace/random, IDN domény, fragmenty. → `shared.js` + `tests/clean.test.js` (19 testů).
-- [x] **`web-ext` workflow** — přidat `package.json` s `web-ext lint` a `web-ext build` (nahradí ruční tvorbu `cleanurl.xpi`, který je teď v gitignore). Volitelně GitHub Actions na lint. → `package.json` + `web-ext-config.cjs`; lint projde s 0 varováními. (GitHub Actions zatím vynecháno — `.gitignore` pravidlo `.**` ignoruje `.github/`.)
-- [x] **ESLint** — minimální konfigurace s `webextensions` env. → `eslint.config.js` (flat config), lint je čistý.
-- [x] **Sloučit duplicitní konstanty** — klíče storage jsou v `background.js` jako konstanty, ale v `popup.js`/`options.js` jako stringy (`"cleanurl_params"`). Přesunout do sdíleného souboru (např. rozšířit `params.js` → `shared.js`). → Vše v `shared.js`.
-- [x] **Vyhodit `.idea/` z gitu** — IDE soubory do `.gitignore`, `git rm -r --cached .idea`. → `.idea/` už není trackováno (kryje pravidlo `.**`).
+- [x] **Unit tests for the pure logic** — `cleanUrl`, `matchesPattern`, `buildParamMap`, `isDomainAllowed` are pure functions. Extract them into a shared module and test via `node:test` (no dependencies). Tests: duplicate parameters, wildcards, replace/random loops, IDN domains, fragments. → `shared.js` + `tests/clean.test.js` (19 tests).
+- [x] **`web-ext` workflow** — add `package.json` with `web-ext lint` and `web-ext build` (replaces the manual `cleanurl.xpi`, now gitignored). Optionally GitHub Actions for lint. → `package.json` + `web-ext-config.cjs`; lint passes with 0 warnings. (GitHub Actions skipped for now — the `.gitignore` rule `.**` ignores `.github/`.)
+- [x] **ESLint** — minimal config with the `webextensions` env. → `eslint.config.js` (flat config), lint is clean.
+- [x] **Merge duplicate constants** — storage keys are constants in `background.js` but string literals in `popup.js`/`options.js` (`"cleanurl_params"`). Move them into a shared file (e.g. extend `params.js` → `shared.js`). → All in `shared.js`.
+- [x] **Drop `.idea/` from git** — IDE files into `.gitignore`, `git rm -r --cached .idea`. → `.idea/` is no longer tracked (covered by the `.**` rule).
 
-## 5. Budoucnost: Manifest V3 (nízká priorita, ale sledovat)
+## 5. Future: Manifest V3 (low priority, but keep an eye on it)
 
-Firefox MV2 zatím podporuje a `webRequestBlocking` funguje i v Firefox MV3, takže nehoří. Až bude potřeba:
+Firefox still supports MV2 and `webRequestBlocking` also works in Firefox MV3, so there's no rush. When needed:
 
-- [ ] Přechod na `manifest_version: 3` (`action` místo `browser_action`, host permissions zvlášť).
-- [ ] Mezikrok hned teď: `persistent: false` (event page) — Firefox podporuje v MV2, ušetří paměť. Vyžaduje přesun session počítadla (`totalCleaned`) do `storage.session` a zrušení debounce logiky závislé na dlouhožijícím stavu.
-- [ ] Alternativa `declarativeNetRequest` se **nehodí** pro režimy replace/random (DNR neumí dynamické hodnoty) — zůstat u blocking webRequest, který Firefox v MV3 zachovává.
+- [ ] Migrate to `manifest_version: 3` (`action` instead of `browser_action`, host permissions separately).
+- [ ] Intermediate step available now: `persistent: false` (event page) — Firefox supports it in MV2, saves memory. Requires moving the session counter (`totalCleaned`) to `storage.session` and removing the debounce logic that depends on long-lived state.
+- [ ] The `declarativeNetRequest` alternative is **not suitable** for replace/random modes (DNR can't do dynamic values) — stay with blocking webRequest, which Firefox keeps in MV3.
 
-## 6. Publikace na AMO (volitelné)
+## 6. Publishing to AMO (optional)
 
-- [ ] Verze 1.1.0 po fázích 1–2, changelog.
-- [ ] `web-ext sign` / submit na addons.mozilla.org — manifest už má `browser_specific_settings.gecko.id` a deklaraci o nesbírání dat, takže je připraveno.
-- [ ] README: sekce o ochraně soukromí (vše lokálně, žádná telemetrie) a odkaz na AMO listing.
+- [ ] Version 1.1.0 after phases 1–2, with a changelog.
+- [ ] `web-ext sign` / submit to addons.mozilla.org — the manifest already has `browser_specific_settings.gecko.id` and a no-data-collection declaration, so it's ready.
+- [ ] README: privacy section (all local, no telemetry) and a link to the AMO listing. → Privacy & permissions section added to the README; the AMO link is deferred until the listing is approved (the URL isn't live yet).
 
-## Poznámky k UI
+## UI notes
 
-Případné úpravy popupu/options držet ve stávajícím tmavém stylu; žádné glow/neon efekty, border-radius max 3px (současný kód to splňuje).
+Keep any popup/options changes in the existing dark style; no glow/neon effects, border-radius max 3px (the current code already complies).
