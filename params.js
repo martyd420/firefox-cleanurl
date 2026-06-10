@@ -19,7 +19,6 @@ const DEFAULT_PARAMS = [
   { name: "gbraid",  mode: "remove", value: "" },
   // Facebook / Meta
   { name: "fbclid",  mode: "remove", value: "" },
-  { name: "mc_eid",  mode: "remove", value: "" },
   // Microsoft / Bing
   { name: "msclkid", mode: "remove", value: "" },
   // Twitter / X
@@ -34,7 +33,8 @@ const DEFAULT_PARAMS = [
   { name: "yclid",     mode: "remove", value: "" },
   { name: "_openstat", mode: "remove", value: "" },
   // Mailchimp
-  { name: "mc_cid",  mode: "remove", value: "" },
+  { name: "mc_cid",  mode: "remove", value: "" },  // campaign ID
+  { name: "mc_eid",  mode: "remove", value: "" },  // recipient e-mail ID
   // HubSpot
   { name: "_hsenc",  mode: "remove", value: "" },
   { name: "_hsmi",   mode: "remove", value: "" },
