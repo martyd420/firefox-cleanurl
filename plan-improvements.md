@@ -2,6 +2,19 @@
 
 Stav: návrh k diskusi. Položky jsou seřazené podle priority; každá fáze je samostatně dodatelná.
 
+## Vůdčí princip: maximální bezpečnost a soukromí
+
+CleanURL cílí na uživatele citlivé na soukromí a bezpečnost. Všechna rozhodnutí
+proto drží **minimalizaci dat** a **nejnižší možná oprávnění**:
+
+- Žádný sběr dat, žádná telemetrie, žádné síťové volání — vše běží lokálně.
+- Žádáme jen 4 nezbytná oprávnění (`webRequest`, `webRequestBlocking`,
+  `storage`, `<all_urls>`); každé je nutné pro jádro funkce.
+- **Nikdy nebudeme požadovat riziková oprávnění, která pro čištění URL nejsou
+  nezbytná** — zejména `clipboardWrite`/`clipboardRead`, `cookies`, `history`,
+  `bookmarks`, `downloads`, `nativeMessaging`. Pokud nějakou funkci nelze
+  postavit bez takového oprávnění, funkci raději zahodíme nebo přepracujeme.
+
 ## 1. Opravy chyb (rychlé, udělat hned)
 
 - [x] **Mrtvý kód `mode !== "off"` v popupu** (`popup.js:32`) — režim `off` nikde neexistuje, počítadlo „Tracking N parameters" tedy vždy počítá všechny parametry. Buď podmínku odstranit, nebo (lépe) režim `off` skutečně doimplementovat — viz bod 3.1.
@@ -26,8 +39,8 @@ Stav: návrh k diskusi. Položky jsou seřazené podle priority; každá fáze j
 
 - [ ] **3.1 Per-parametr vypnutí (režim `off`)** — místo mazání řádku umožnit parametr dočasně vypnout. Doplnit do `cleanUrl` (přeskočit), do selectu v options a opravit počítadlo v popupu (návaznost na bod 1).
 - [ ] **3.2 Export / import nastavení** — JSON soubor s parametry + allowlistem. Dvě tlačítka v options, validace při importu.
-- [ ] **3.3 „Vyčistit aktuální URL" v popupu** — tlačítko, které vezme URL aktivního tabu, vyčistí ji a zkopíruje do schránky (sdílení odkazů bez trackingu i z webů v allowlistu). Vyžaduje permission `activeTab` + `clipboardWrite`.
-- [ ] **3.4 Kontextové menu „Kopírovat čistý odkaz"** — pravý klik na odkaz → vyčištěná URL do schránky. Permission `menus`.
+- [ ] **3.3 „Vyčistit aktuální URL" v popupu** — tlačítko, které vezme URL aktivního tabu, vyčistí ji a zkopíruje do schránky (sdílení odkazů bez trackingu i z webů v allowlistu). ~~Vyžaduje permission `activeTab` + `clipboardWrite`.~~ → **`clipboardWrite` nepožadujeme (viz vůdčí princip).** Realizovat jen pokud kopírování půjde přes uživatelské gesto bez permission (kliknutí na tlačítko → `navigator.clipboard.writeText` / `execCommand`); jinak funkci zahodit nebo nahradit jen zobrazením vyčištěné URL k ručnímu zkopírování.
+- [ ] **3.4 Kontextové menu „Kopírovat čistý odkaz"** — pravý klik na odkaz → vyčištěná URL do schránky. Permission `menus`. → Stejná podmínka jako 3.3 — bez `clipboardWrite`; pokud to bez něj nejde spolehlivě, zahodit.
 - [ ] **3.5 Per-tab badge** — dnes badge ukazuje globální session počítadlo. Užitečnější je počet vyčištěných parametrů pro aktuální tab (`setBadgeText({ tabId })`), globální čísla nechat v popupu.
 - [ ] **3.6 Rozšíření výchozího seznamu** — kandidáti: `mkt_tok` (Marketo), `vero_id`, `oly_enc_id`/`oly_anon_id` (Omeda), `s_cid` (Adobe), `dclid` (DoubleClick), `srsltid` (Google Merchant), `li_fat_id` (LinkedIn), `sccid` (Snapchat), `rtid`. Pozor na parametry, které rozbíjejí funkčnost (`ref` u některých webů) — ty nepřidávat globálně.
 - [ ] **3.7 Log posledních vyčištění** — malý kruhový buffer (např. 50 záznamů: čas, doména, odstraněné parametry) zobrazený v options. Pomáhá ladit falešné pozitivy. Držet jen v paměti (žádný zápis na disk = žádný nový sběr dat).
