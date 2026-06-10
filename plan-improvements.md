@@ -11,13 +11,18 @@ Stav: návrh k diskusi. Položky jsou seřazené podle priority; každá fáze j
 
 ## 2. Robustnost čištění
 
-- [ ] **Parametry ve fragmentu URL** — trackery se objevují i za `#` (`example.com/#utm_source=x`, typicky SPA routery). Přidat volitelné čištění `url.hash`, pokud má tvar query stringu.
-- [ ] **Vedlejší efekty re-serializace URL** — `URLSearchParams.toString()` mění encoding (`+`/`%20`, pořadí escapování) i u parametrů, kterých se čištění netýká. Minimalizovat: pokud `count === 0`, nic nevracet (už je), a zvážit ruční sestavení query, aby se nedotčené parametry nepřepisovaly.
-- [ ] **Vícenásobné hvězdičky ve vzoru** — `matchesPattern` umí jen prefix/sufix/contains. Buď podporu rozšířit (převod na RegExp s escapováním), nebo v options validovat a vzory typu `a*b*c` odmítnout s hláškou.
-- [ ] **Validace nového parametru v options** (`options.js:142`) — dnes projde cokoli včetně mezer, `=`, `&`. Přidat jednoduchou validaci (`/^[\w.*~-]+$/`) a chybovou hlášku.
-- [ ] **Allowlist: validace domény** — dnes lze přidat libovolný řetězec. Validovat tvar domény, normalizovat IDN (punycode) přes `new URL("http://" + raw).hostname`.
+- [x] **Parametry ve fragmentu URL** — trackery se objevují i za `#` (`example.com/#utm_source=x`, typicky SPA routery). Přidat volitelné čištění `url.hash`, pokud má tvar query stringu.
+- [x] **Vedlejší efekty re-serializace URL** — `URLSearchParams.toString()` mění encoding (`+`/`%20`, pořadí escapování) i u parametrů, kterých se čištění netýká. Minimalizovat: pokud `count === 0`, nic nevracet (už je), a zvážit ruční sestavení query, aby se nedotčené parametry nepřepisovaly. → Cleaner přepsán na práci s raw segmenty, nedotčené parametry se nepřepisují.
+- [x] **Vícenásobné hvězdičky ve vzoru** — `matchesPattern` umí jen prefix/sufix/contains. Buď podporu rozšířit (převod na RegExp s escapováním), nebo v options validovat a vzory typu `a*b*c` odmítnout s hláškou. → Validace v options (`isValidParamName`).
+- [x] **Validace nového parametru v options** (`options.js:142`) — dnes projde cokoli včetně mezer, `=`, `&`. Přidat jednoduchou validaci (`/^[\w.*~-]+$/`) a chybovou hlášku.
+- [x] **Allowlist: validace domény** — dnes lze přidat libovolný řetězec. Validovat tvar domény, normalizovat IDN (punycode) přes `new URL("http://" + raw).hostname`.
 
 ## 3. Funkční vylepšení
+
+> **Odloženo až po schválení na AMO.** Listing čeká na review
+> (https://addons.mozilla.org/en-US/firefox/addon/cleanurl/). Body 3.3/3.4
+> přidávají nové permissions (`clipboardWrite`, `activeTab`, `menus`), což může
+> review prodloužit nebo restartovat. Realizovat až po schválení.
 
 - [ ] **3.1 Per-parametr vypnutí (režim `off`)** — místo mazání řádku umožnit parametr dočasně vypnout. Doplnit do `cleanUrl` (přeskočit), do selectu v options a opravit počítadlo v popupu (návaznost na bod 1).
 - [ ] **3.2 Export / import nastavení** — JSON soubor s parametry + allowlistem. Dvě tlačítka v options, validace při importu.
@@ -29,11 +34,11 @@ Stav: návrh k diskusi. Položky jsou seřazené podle priority; každá fáze j
 
 ## 4. Kvalita kódu a tooling
 
-- [ ] **Unit testy čisté logiky** — `cleanUrl`, `matchesPattern`, `buildParamMap`, `isDomainAllowed` jsou čisté funkce. Vyčlenit je do sdíleného modulu a testovat přes `node:test` (bez závislostí). Testy: duplicitní parametry, wildcardy, smyčky replace/random, IDN domény, fragmenty.
-- [ ] **`web-ext` workflow** — přidat `package.json` s `web-ext lint` a `web-ext build` (nahradí ruční tvorbu `cleanurl.xpi`, který je teď v gitignore). Volitelně GitHub Actions na lint.
-- [ ] **ESLint** — minimální konfigurace s `webextensions` env.
-- [ ] **Sloučit duplicitní konstanty** — klíče storage jsou v `background.js` jako konstanty, ale v `popup.js`/`options.js` jako stringy (`"cleanurl_params"`). Přesunout do sdíleného souboru (např. rozšířit `params.js` → `shared.js`).
-- [ ] **Vyhodit `.idea/` z gitu** — IDE soubory do `.gitignore`, `git rm -r --cached .idea`.
+- [x] **Unit testy čisté logiky** — `cleanUrl`, `matchesPattern`, `buildParamMap`, `isDomainAllowed` jsou čisté funkce. Vyčlenit je do sdíleného modulu a testovat přes `node:test` (bez závislostí). Testy: duplicitní parametry, wildcardy, smyčky replace/random, IDN domény, fragmenty. → `shared.js` + `tests/clean.test.js` (19 testů).
+- [x] **`web-ext` workflow** — přidat `package.json` s `web-ext lint` a `web-ext build` (nahradí ruční tvorbu `cleanurl.xpi`, který je teď v gitignore). Volitelně GitHub Actions na lint. → `package.json` + `web-ext-config.cjs`; lint projde s 0 varováními. (GitHub Actions zatím vynecháno — `.gitignore` pravidlo `.**` ignoruje `.github/`.)
+- [x] **ESLint** — minimální konfigurace s `webextensions` env. → `eslint.config.js` (flat config), lint je čistý.
+- [x] **Sloučit duplicitní konstanty** — klíče storage jsou v `background.js` jako konstanty, ale v `popup.js`/`options.js` jako stringy (`"cleanurl_params"`). Přesunout do sdíleného souboru (např. rozšířit `params.js` → `shared.js`). → Vše v `shared.js`.
+- [x] **Vyhodit `.idea/` z gitu** — IDE soubory do `.gitignore`, `git rm -r --cached .idea`. → `.idea/` už není trackováno (kryje pravidlo `.**`).
 
 ## 5. Budoucnost: Manifest V3 (nízká priorita, ale sledovat)
 
