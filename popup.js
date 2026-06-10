@@ -29,7 +29,7 @@ async function render() {
   toggle.checked = en;
 
   const params = data.cleanurl_params || DEFAULT_PARAMS;
-  const active  = params.filter(p => p.mode !== "off").length;
+  const active  = params.length;
 
   if (en) {
     setCounter(status, "Tracking ", active, " parameters");
