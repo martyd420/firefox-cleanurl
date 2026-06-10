@@ -134,14 +134,24 @@ function onBeforeRequest(details) {
     updateBadge();
     // Debounce storage write — batches rapid navigations into one write.
     clearTimeout(lifetimeSaveTimer);
-    lifetimeSaveTimer = setTimeout(
-      () => browser.storage.local.set({ [STORAGE_KEY_LIFETIME]: lifetimeCleaned }),
-      2000
-    );
+    lifetimeSaveTimer = setTimeout(flushLifetime, 2000);
     return { redirectUrl: result.url };
   }
   return {};
 }
+
+// Writes the pending lifetime counter immediately, cancelling any debounce.
+function flushLifetime() {
+  clearTimeout(lifetimeSaveTimer);
+  lifetimeSaveTimer = null;
+  return browser.storage.local.set({ [STORAGE_KEY_LIFETIME]: lifetimeCleaned });
+}
+
+// A debounced write may still be pending when the browser closes; flush it so
+// the last navigations aren't lost from the lifetime total.
+window.addEventListener("beforeunload", () => {
+  if (lifetimeSaveTimer !== null) flushLifetime();
+});
 
 browser.runtime.onMessage.addListener(msg => {
   if (msg.type === "getStats") return Promise.resolve({ totalCleaned, lifetimeCleaned });
