@@ -1,53 +1,14 @@
-const STORAGE_KEY_PARAMS    = "cleanurl_params";
-const STORAGE_KEY_ENABLED   = "cleanurl_enabled";
-const STORAGE_KEY_ALLOWLIST = "cleanurl_allowlist";
-const STORAGE_KEY_LIFETIME  = "cleanurl_lifetime_cleaned";
+// Storage keys, DEFAULT_PARAMS and the pure cleaning logic live in shared.js,
+// which the manifest loads before this script.
+
 const PENDING_TTL = 5000;
 
-let enabled        = true;
-let paramMap       = new Map();  // lowercase exact name → {mode, value}
-let wildcardList   = [];         // [{pattern, cfg}] for entries containing *
-let allowlist      = [];         // string[] of domains where cleaning is skipped
-let totalCleaned   = 0;          // session counter (resets on browser restart)
-let lifetimeCleaned = 0;         // persistent counter (survives restarts)
+let enabled         = true;
+let compiled        = compileParams([]); // { exact, wildcards }
+let allowlist       = [];                // string[] of domains where cleaning is skipped
+let totalCleaned    = 0;                 // session counter (resets on browser restart)
+let lifetimeCleaned = 0;                 // persistent counter (survives restarts)
 let lifetimeSaveTimer = null;
-
-function randomString(len = 12) {
-  const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let out = "";
-  const buf = new Uint8Array(len);
-  crypto.getRandomValues(buf);
-  for (const b of buf) out += chars[b % chars.length];
-  return out;
-}
-
-// Supports prefix (utm_*), suffix (*clid), contains (*track*), and exact (*) wildcards.
-function matchesPattern(pattern, name) {
-  if (pattern === "*") return true;
-  const sw = pattern.startsWith("*");
-  const ew = pattern.endsWith("*");
-  if (sw && ew) return name.includes(pattern.slice(1, -1));
-  if (sw)       return name.endsWith(pattern.slice(1));
-  if (ew)       return name.startsWith(pattern.slice(0, -1));
-  return name === pattern;
-}
-
-function buildParamMap(params) {
-  paramMap = new Map();
-  wildcardList = [];
-  for (const p of params) {
-    const key = p.name.toLowerCase();
-    const cfg = { mode: p.mode, value: p.value };
-    if (key.includes("*")) wildcardList.push({ pattern: key, cfg });
-    else                    paramMap.set(key, cfg);
-  }
-}
-
-// Matches exact domain AND all its subdomains.
-function isDomainAllowed(hostname) {
-  const h = hostname.toLowerCase();
-  return allowlist.some(d => h === d || h.endsWith("." + d));
-}
 
 function updateBadge() {
   const text = totalCleaned > 0
@@ -56,47 +17,6 @@ function updateBadge() {
   browser.browserAction.setBadgeText({ text });
   browser.browserAction.setBadgeBackgroundColor({ color: "#4a9c59" });
   browser.browserAction.setBadgeTextColor({ color: "#ffffff" });
-}
-
-function cleanUrl(rawUrl) {
-  let url;
-  try { url = new URL(rawUrl); } catch { return null; }
-
-  let count = 0;
-  // Iterate a snapshot so deletes/sets don't disturb iteration. delete()/set()
-  // act on every occurrence of a key at once, so we process each distinct key
-  // only once — otherwise duplicate params (?utm=a&utm=b) would be counted per
-  // occurrence even though a single call already handled them all.
-  const processed = new Set();
-  for (const [key] of [...url.searchParams]) {
-    if (processed.has(key)) continue;
-    processed.add(key);
-    const lkey = key.toLowerCase();
-
-    let cfg = paramMap.get(lkey);
-    if (!cfg) {
-      for (const w of wildcardList) {
-        if (matchesPattern(w.pattern, lkey)) { cfg = w.cfg; break; }
-      }
-    }
-    if (!cfg) continue;
-
-    if (cfg.mode === "remove") {
-      url.searchParams.delete(key);
-      count++;
-    } else if (cfg.mode === "replace") {
-      // Only act if some occurrence differs — prevents redirect loop on
-      // already-replaced URLs.
-      if (url.searchParams.getAll(key).some(v => v !== cfg.value)) {
-        url.searchParams.set(key, cfg.value);
-        count++;
-      }
-    } else if (cfg.mode === "random") {
-      url.searchParams.set(key, randomString());
-      count++;
-    }
-  }
-  return count > 0 ? { url: url.toString(), count } : null;
 }
 
 // Map<url, expiryMs> — skip URLs we just produced as redirect targets
@@ -108,7 +28,7 @@ function onBeforeRequest(details) {
   if (!enabled) return {};
 
   try {
-    if (isDomainAllowed(new URL(details.url).hostname)) return {};
+    if (isDomainAllowed(new URL(details.url).hostname, allowlist)) return {};
   } catch { return {}; }
 
   const now = Date.now();
@@ -126,10 +46,10 @@ function onBeforeRequest(details) {
     // Expired entry — fall through and process normally.
   }
 
-  const result = cleanUrl(details.url);
+  const result = cleanUrl(details.url, compiled);
   if (result) {
     pendingRedirects.set(result.url, now + PENDING_TTL);
-    totalCleaned   += result.count;
+    totalCleaned    += result.count;
     lifetimeCleaned += result.count;
     updateBadge();
     // Debounce storage write — batches rapid navigations into one write.
@@ -180,7 +100,7 @@ async function loadSettings() {
   enabled         = data[STORAGE_KEY_ENABLED] !== false;
   allowlist       = data[STORAGE_KEY_ALLOWLIST] || [];
   lifetimeCleaned = data[STORAGE_KEY_LIFETIME]  || 0;
-  buildParamMap(data[STORAGE_KEY_PARAMS] || DEFAULT_PARAMS);
+  compiled        = compileParams(data[STORAGE_KEY_PARAMS] || DEFAULT_PARAMS);
   if (enabled) registerListener(); else unregisterListener();
 }
 
@@ -191,7 +111,7 @@ browser.storage.onChanged.addListener((changes, area) => {
     if (enabled) registerListener(); else unregisterListener();
   }
   if (STORAGE_KEY_PARAMS in changes) {
-    buildParamMap(changes[STORAGE_KEY_PARAMS].newValue || DEFAULT_PARAMS);
+    compiled = compileParams(changes[STORAGE_KEY_PARAMS].newValue || DEFAULT_PARAMS);
   }
   if (STORAGE_KEY_ALLOWLIST in changes) {
     allowlist = changes[STORAGE_KEY_ALLOWLIST].newValue || [];

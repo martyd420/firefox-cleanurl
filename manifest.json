@@ -13,7 +13,7 @@
   ],
 
   "background": {
-    "scripts": ["params.js", "background.js"],
+    "scripts": ["shared.js", "background.js"],
     "persistent": true
   },
 

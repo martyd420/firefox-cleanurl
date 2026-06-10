@@ -142,14 +142,6 @@ addBtn.addEventListener("click", addParam);
 newParam.addEventListener("keydown", e => { if (e.key === "Enter") addParam(); });
 newParam.addEventListener("input", () => clearError(paramError));
 
-// A valid name is a bare parameter (letters, digits, _ . ~ -) optionally with a
-// single leading and/or trailing "*" wildcard, or "*" on its own. This matches
-// what matchesPattern() supports (prefix / suffix / contains / exact) and
-// rejects "=", "&", spaces, and unsupported multi-asterisk patterns like a*b*c.
-function isValidParamName(name) {
-  return name === "*" || /^\*?[\w.~-]+\*?$/.test(name);
-}
-
 function addParam() {
   const name = newParam.value.trim().toLowerCase();
   if (!name) return;
@@ -194,22 +186,6 @@ function renderDomains() {
 addDomainBtn.addEventListener("click", addDomain);
 newDomain.addEventListener("keydown", e => { if (e.key === "Enter") addDomain(); });
 newDomain.addEventListener("input", () => clearError(domainError));
-
-// Normalizes user input to a bare hostname, converting IDNs to punycode via the
-// URL parser so the stored form matches what background.js sees. Returns null
-// for input that isn't a plausible domain.
-function normalizeDomain(input) {
-  const raw = input.trim().toLowerCase()
-    .replace(/^https?:\/\//, "")   // strip protocol if pasted
-    .replace(/\/.*$/, "");         // strip path
-  if (!raw) return null;
-  let host;
-  try { host = new URL("http://" + raw).hostname; } catch { return null; }
-  // Require at least one dot and only host-legal characters — rejects junk
-  // like "foo bar", "a=b", or a bare single label.
-  if (!host.includes(".") || !/^[a-z0-9.-]+$/.test(host)) return null;
-  return host;
-}
 
 function addDomain() {
   if (!newDomain.value.trim()) return;
