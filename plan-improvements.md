@@ -1,6 +1,8 @@
 # CleanURL – improvement plan
 
-Status: proposal for discussion. Items are ordered by priority; each phase can be shipped on its own.
+Status: **Phases 1, 2 and 4 are done and shipped** (bug fixes, cleaning robustness, tests + tooling). Phase 3 (functional features) is **deferred until the AMO listing is approved**, since some items add new permissions that could disrupt the pending review. Phases 5 (Manifest V3) and 6 (publishing) remain future work. Items are ordered by priority; each phase can be shipped on its own.
+
+**Next action: wait for AMO approval, then resume with Phase 3.**
 
 ## Guiding principle: maximum security and privacy
 
