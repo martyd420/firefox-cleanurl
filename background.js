@@ -63,8 +63,14 @@ function cleanUrl(rawUrl) {
   try { url = new URL(rawUrl); } catch { return null; }
 
   let count = 0;
-  // Iterate a snapshot of params so deletes don't affect the iteration.
-  for (const [key, currentVal] of [...url.searchParams]) {
+  // Iterate a snapshot so deletes/sets don't disturb iteration. delete()/set()
+  // act on every occurrence of a key at once, so we process each distinct key
+  // only once — otherwise duplicate params (?utm=a&utm=b) would be counted per
+  // occurrence even though a single call already handled them all.
+  const processed = new Set();
+  for (const [key] of [...url.searchParams]) {
+    if (processed.has(key)) continue;
+    processed.add(key);
     const lkey = key.toLowerCase();
 
     let cfg = paramMap.get(lkey);
@@ -79,8 +85,9 @@ function cleanUrl(rawUrl) {
       url.searchParams.delete(key);
       count++;
     } else if (cfg.mode === "replace") {
-      // Only act if value differs — prevents redirect loop on already-replaced URLs.
-      if (currentVal !== cfg.value) {
+      // Only act if some occurrence differs — prevents redirect loop on
+      // already-replaced URLs.
+      if (url.searchParams.getAll(key).some(v => v !== cfg.value)) {
         url.searchParams.set(key, cfg.value);
         count++;
       }
