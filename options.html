@@ -137,6 +137,14 @@
       margin-left: auto;
     }
     .saved-msg.show { opacity: 1; }
+
+    .input-error {
+      width: 100%;
+      font-size: 12px;
+      color: #e07070;
+      min-height: 16px;
+      margin: -14px 0 16px;
+    }
   </style>
 </head>
 <body>
@@ -157,6 +165,7 @@
     <input type="text" id="new-param" placeholder="Parameter name or pattern (e.g. ref, utm_*)">
     <button class="btn primary" id="add-btn">Add</button>
   </div>
+  <div class="input-error" id="param-error"></div>
 
   <table>
     <thead>
@@ -178,6 +187,7 @@
       <input type="text" id="new-domain" placeholder="example.com">
       <button class="btn primary" id="add-domain-btn">Add</button>
     </div>
+    <div class="input-error" id="domain-error"></div>
     <div class="domain-list" id="domain-list"></div>
   </div>
 

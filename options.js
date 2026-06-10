@@ -11,6 +11,8 @@ const addBtn      = document.getElementById("add-btn");
 const newDomain   = document.getElementById("new-domain");
 const addDomainBtn= document.getElementById("add-domain-btn");
 const domainList  = document.getElementById("domain-list");
+const paramError  = document.getElementById("param-error");
+const domainError = document.getElementById("domain-error");
 
 // ── Persistence ──────────────────────────────────────────────────────────────
 
@@ -138,14 +140,29 @@ document.getElementById("reset-defaults").addEventListener("click", () => {
 
 addBtn.addEventListener("click", addParam);
 newParam.addEventListener("keydown", e => { if (e.key === "Enter") addParam(); });
+newParam.addEventListener("input", () => clearError(paramError));
+
+// A valid name is a bare parameter (letters, digits, _ . ~ -) optionally with a
+// single leading and/or trailing "*" wildcard, or "*" on its own. This matches
+// what matchesPattern() supports (prefix / suffix / contains / exact) and
+// rejects "=", "&", spaces, and unsupported multi-asterisk patterns like a*b*c.
+function isValidParamName(name) {
+  return name === "*" || /^\*?[\w.~-]+\*?$/.test(name);
+}
 
 function addParam() {
   const name = newParam.value.trim().toLowerCase();
   if (!name) return;
-  if (params.some(p => p.name === name)) {
-    flash(newParam);
+  if (!isValidParamName(name)) {
+    showError(paramError, newParam,
+      "Use letters, digits, _ . ~ - and at most one leading/trailing *.");
     return;
   }
+  if (params.some(p => p.name === name)) {
+    showError(paramError, newParam, "That parameter is already in the list.");
+    return;
+  }
+  clearError(paramError);
   params.push({ name, mode: "remove", value: "" });
   newParam.value = "";
   renderParams();
@@ -176,14 +193,37 @@ function renderDomains() {
 
 addDomainBtn.addEventListener("click", addDomain);
 newDomain.addEventListener("keydown", e => { if (e.key === "Enter") addDomain(); });
+newDomain.addEventListener("input", () => clearError(domainError));
 
-function addDomain() {
-  const raw = newDomain.value.trim().toLowerCase()
+// Normalizes user input to a bare hostname, converting IDNs to punycode via the
+// URL parser so the stored form matches what background.js sees. Returns null
+// for input that isn't a plausible domain.
+function normalizeDomain(input) {
+  const raw = input.trim().toLowerCase()
     .replace(/^https?:\/\//, "")   // strip protocol if pasted
     .replace(/\/.*$/, "");         // strip path
-  if (!raw) return;
-  if (allowlist.includes(raw)) { flash(newDomain); return; }
-  allowlist.push(raw);
+  if (!raw) return null;
+  let host;
+  try { host = new URL("http://" + raw).hostname; } catch { return null; }
+  // Require at least one dot and only host-legal characters — rejects junk
+  // like "foo bar", "a=b", or a bare single label.
+  if (!host.includes(".") || !/^[a-z0-9.-]+$/.test(host)) return null;
+  return host;
+}
+
+function addDomain() {
+  if (!newDomain.value.trim()) return;
+  const host = normalizeDomain(newDomain.value);
+  if (!host) {
+    showError(domainError, newDomain, "Enter a valid domain, e.g. example.com.");
+    return;
+  }
+  if (allowlist.includes(host)) {
+    showError(domainError, newDomain, "That domain is already in the list.");
+    return;
+  }
+  clearError(domainError);
+  allowlist.push(host);
   newDomain.value = "";
   renderDomains();
   scheduleSave();
@@ -194,6 +234,15 @@ function addDomain() {
 function flash(el) {
   el.style.borderColor = "#c05050";
   setTimeout(() => { el.style.borderColor = ""; }, 1200);
+}
+
+function showError(msgEl, inputEl, text) {
+  msgEl.textContent = text;
+  flash(inputEl);
+}
+
+function clearError(msgEl) {
+  msgEl.textContent = "";
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
