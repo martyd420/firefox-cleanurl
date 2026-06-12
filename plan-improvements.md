@@ -1,8 +1,8 @@
 # CleanURL – improvement plan
 
-Status: **Phases 1, 2 and 4 are done and shipped** (bug fixes, cleaning robustness, tests + tooling). Phase 3 (functional features) is **deferred until the AMO listing is approved**, since some items add new permissions that could disrupt the pending review. Phases 5 (Manifest V3) and 6 (publishing) remain future work. Items are ordered by priority; each phase can be shipped on its own.
+Status: **Phases 1, 2 and 4 are done and shipped** (bug fixes, cleaning robustness, tests + tooling). **The AMO listing is approved and live** at https://addons.mozilla.org/cs/firefox/addon/cleanurl/ — Phase 3 (functional features) is now unblocked. Phase 5 (Manifest V3) remains future work. Items are ordered by priority; each phase can be shipped on its own.
 
-**Next action: wait for AMO approval, then resume with Phase 3.**
+**Next action: resume with Phase 3.**
 
 ## Guiding principle: maximum security and privacy
 
@@ -34,10 +34,10 @@ favors **data minimization** and the **least privilege** possible:
 
 ## 3. Functional improvements
 
-> **Deferred until AMO approval.** The listing is awaiting review
-> (https://addons.mozilla.org/en-US/firefox/addon/cleanurl/). Items 3.3/3.4 add
-> new permissions (`clipboardWrite`, `activeTab`, `menus`), which could extend or
-> restart the review. Implement only after approval.
+> **Unblocked — the AMO listing is approved**
+> (https://addons.mozilla.org/cs/firefox/addon/cleanurl/). Note that items
+> 3.3/3.4 would add new permissions (`activeTab`, `menus`), which triggers a new
+> review when an update is submitted.
 
 - [ ] **3.1 Per-parameter disable (`off` mode)** — instead of deleting a row, allow a parameter to be temporarily disabled. Add to `cleanUrl` (skip), to the options select, and fix the popup counter (follows from item 1).
 - [ ] **3.2 Export / import settings** — JSON file with parameters + allowlist. Two buttons in options, validation on import.
@@ -63,11 +63,11 @@ Firefox still supports MV2 and `webRequestBlocking` also works in Firefox MV3, s
 - [ ] Intermediate step available now: `persistent: false` (event page) — Firefox supports it in MV2, saves memory. Requires moving the session counter (`totalCleaned`) to `storage.session` and removing the debounce logic that depends on long-lived state.
 - [ ] The `declarativeNetRequest` alternative is **not suitable** for replace/random modes (DNR can't do dynamic values) — stay with blocking webRequest, which Firefox keeps in MV3.
 
-## 6. Publishing to AMO (optional)
+## 6. Publishing to AMO
 
-- [ ] Version 1.1.0 after phases 1–2, with a changelog.
-- [ ] `web-ext sign` / submit to addons.mozilla.org — the manifest already has `browser_specific_settings.gecko.id` and a no-data-collection declaration, so it's ready.
-- [ ] README: privacy section (all local, no telemetry) and a link to the AMO listing. → Privacy & permissions section added to the README; the AMO link is deferred until the listing is approved (the URL isn't live yet).
+- [ ] Version 1.1.0 after phases 1–2, with a changelog. (Manifest is still 1.0.0.)
+- [x] `web-ext sign` / submit to addons.mozilla.org — submitted and **approved**; the listing is live at https://addons.mozilla.org/cs/firefox/addon/cleanurl/.
+- [x] README: privacy section (all local, no telemetry) and a link to the AMO listing. → Privacy & permissions section added; the AMO link is now the recommended installation method in the README.
 
 ## UI notes
 

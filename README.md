@@ -14,6 +14,12 @@ A Firefox extension that removes or replaces tracking parameters from URLs befor
 
 ## Installation
 
+### From addons.mozilla.org (recommended)
+
+**<https://addons.mozilla.org/cs/firefox/addon/cleanurl/>**
+
+### From source (development)
+
 1. Clone or download this repository.
 2. Open Firefox and go to `about:debugging#/runtime/this-firefox`.
 3. Click **Load Temporary Add-on** and select `manifest.json`.
